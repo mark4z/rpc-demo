@@ -4,56 +4,46 @@ import (
 	"context"
 	"fmt"
 	"github.com/mark4z/rpc-demo/samples"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"reflect"
-	"strings"
 )
 
 func main() {
-	samples.RegisterService(&samples.HelloClientImpl{})
-	samples.RegisterService(&samples.WorldClientImpl{})
+	samples.RegisterService(&HelloServerImpl{})
+	samples.RegisterService(&WorldServerImpl{})
 
 	mux := http.DefaultServeMux
-	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		in, _ := ioutil.ReadAll(r.Body)
-		method := r.URL.Path
+	mux.HandleFunc("/", samples.DefaultHandler())
 
-		outs, err := Invoke(method, string(in))
-		if err != nil {
-			return
-		}
-		if err != nil {
-			_, _ = w.Write([]byte(err.Error()))
-			return
-		}
-		fmt.Println(outs)
-		_, _ = w.Write([]byte(outs))
-	}))
 	log.Fatalln(http.ListenAndServe(":8080", mux))
 }
 
-func Invoke(method string, in string) (string, error) {
-	methods := strings.Split(method, "/")
+type HelloServerImpl struct {
+}
 
-	service := samples.GetService(methods[1])
-	methodName := methods[2]
+func (i *HelloServerImpl) SayHello(ctx context.Context, req string) (string, error) {
+	return fmt.Sprintf("hello %s", req), nil
+}
 
-	//find method by name
-	methodValue := reflect.ValueOf(service).MethodByName(methodName)
-	if !methodValue.IsValid() {
-		return "", fmt.Errorf("method %s not found", methodName)
-	}
+func (i *HelloServerImpl) SayHelloAgain(ctx context.Context, req string) (string, error) {
+	return fmt.Sprintf("hello %s again", req), nil
+}
 
-	ins := make([]reflect.Value, 2)
-	ins[0] = reflect.ValueOf(context.Background())
-	ins[1] = reflect.ValueOf(in)
+func (i *HelloServerImpl) Refer() string {
+	return "Hello"
+}
 
-	outs := methodValue.Call(ins)
-	if outs[1].Interface() != nil {
-		return outs[0].Interface().(string), outs[1].Interface().(error)
-	}
+type WorldServerImpl struct {
+}
 
-	return outs[0].Interface().(string), nil
+func (i *WorldServerImpl) SayWorld(ctx context.Context, req string) (string, error) {
+	return fmt.Sprintf("%s World", req), nil
+}
+
+func (i *WorldServerImpl) SayWorldAgain(ctx context.Context, req string) (string, error) {
+	return fmt.Sprintf("%s World again", req), nil
+}
+
+func (i *WorldServerImpl) Refer() string {
+	return "World"
 }
