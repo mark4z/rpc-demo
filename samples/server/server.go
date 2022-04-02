@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/mark4z/rpc-demo/samples"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,11 +11,9 @@ import (
 	"strings"
 )
 
-var serviceMap = map[string]interface{}{}
-
 func main() {
-	serviceMap["Hello"] = &HelloServerImpl{}
-	serviceMap["World"] = &WorldServerImpl{}
+	samples.RegisterService(&samples.HelloClientImpl{})
+	samples.RegisterService(&samples.WorldClientImpl{})
 
 	mux := http.DefaultServeMux
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +37,7 @@ func main() {
 func Invoke(method string, in string) (string, error) {
 	methods := strings.Split(method, "/")
 
-	service := serviceMap[methods[1]]
+	service := samples.GetService(methods[1])
 	methodName := methods[2]
 
 	//find method by name
@@ -57,26 +56,4 @@ func Invoke(method string, in string) (string, error) {
 	}
 
 	return outs[0].Interface().(string), nil
-}
-
-type HelloServerImpl struct {
-}
-
-func (i *HelloServerImpl) SayHello(ctx context.Context, req string) (string, error) {
-	return fmt.Sprintf("hello %s", req), nil
-}
-
-func (i *HelloServerImpl) SayHelloAgain(ctx context.Context, req string) (string, error) {
-	return fmt.Sprintf("hello %s again", req), nil
-}
-
-type WorldServerImpl struct {
-}
-
-func (i *WorldServerImpl) SayWorld(ctx context.Context, req string) (string, error) {
-	return fmt.Sprintf("%s World", req), nil
-}
-
-func (i *WorldServerImpl) SayWorldAgain(ctx context.Context, req string) (string, error) {
-	return fmt.Sprintf("%s World again", req), nil
 }
